@@ -2,3 +2,7 @@ build/
 .cache/
 
 compile_commands.json
+*.ino
+
+kicad/sbrb/sbrb-backups/
+kicad/sbrb/fp-info-cache

@@ -2,7 +2,7 @@
 include config.mk
 
 PROJECT_NAME := $(notdir $(CURDIR))
-CXXFLAGS = -DDEBUG_RP2040_PORT=Serial
+CXXFLAGS = -DESP32=1
 
 # Default target
 all: compile
