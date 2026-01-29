@@ -6,3 +6,5 @@ compile_commands.json
 
 kicad/sbrb/sbrb-backups/
 kicad/sbrb/fp-info-cache
+~*
+*freerouting*
