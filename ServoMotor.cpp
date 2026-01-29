@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
 #include "esp_check.h"
 #include "esp_err.h"
@@ -13,6 +14,7 @@
 #include "portmacro.h"
 #include "projdefs.h"
 #include "semphr.h"
+#include "soc/gpio_num.h"
 
 // Define LOG_TAG if not already defined for ESP logging macros
 #ifndef LOG_TAG
@@ -115,6 +117,22 @@ std::unique_ptr<ServoMotor> ServoMotor::Create(const Config& config) {
       "ServoMotor", 4098, servo_motor, 0, &servo_motor->task_);
 
   return std::unique_ptr<ServoMotor>(servo_motor);
+}
+
+void ServoMotor::DeepSleepPrepare() {
+  vTaskSuspend(task_);
+  OutputDuty(0);
+  gpio_hold_en(static_cast<gpio_num_t>(fwd_pin_));
+  gpio_hold_en(static_cast<gpio_num_t>(rev_pin_));
+}
+
+void ServoMotor::DeepSleepResume() {
+  // Note that when we resume from deep sleep we do not need to resume
+  // the task_ or set the duty. Those values are lost to us since the
+  // memory went away. But what we do need to do is disable the holds
+  // on these GPIOs.
+  gpio_hold_dis(static_cast<gpio_num_t>(fwd_pin_));
+  gpio_hold_dis(static_cast<gpio_num_t>(rev_pin_));
 }
 
 void ServoMotor::Update() {

@@ -28,6 +28,9 @@ class ServoMotor {
   void SetPosition(int deg);
   void Brake();
 
+  void DeepSleepPrepare();
+  void DeepSleepResume();
+
   int64_t GetCount();
 
   float GetSpeed() {

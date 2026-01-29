@@ -51,8 +51,8 @@ static volatile bool sleep_soon = false;
 void IRAM_ATTR SleepPinISR() { sleep_soon = true; }
 
 void GoToSleep() {
-  motor1->SetDuty(0);
-  motor2->SetDuty(0);
+  motor1->DeepSleepPrepare();
+  motor2->DeepSleepPrepare();
 
   neo_pixel.clear();
   neo_pixel.show();
@@ -65,12 +65,8 @@ void GoToSleep() {
   } while (!digitalRead(pin));
   delay(100);
 
-  // Note that we must wait a moment to hold the GPIOs since the motors do set
-  // the GPIOs in the background. (That's not such a great design is it? Let's
-  // fix it some other day.)
-  for (int pin : {kMotor1FwdPin, kMotor1RevPin, kMotor2FwdPin, kMotor2RevPin}) {
-    gpio_hold_en(static_cast<gpio_num_t>(pin));
-  }
+  // We need to respect all holds, particularly on the motor pins,
+  // while we are asleep.
   gpio_deep_sleep_hold_en();
 
   rtc_gpio_init(pin);
@@ -85,13 +81,9 @@ void GoToSleep() {
 }
 
 void WakeUp() {
-  printf("Did wake up by ext0\n");
   rtc_gpio_deinit(static_cast<gpio_num_t>(kSleepPin));
-  printf("After deinit\n");
-  for (int pin : {kMotor1FwdPin, kMotor1RevPin, kMotor2FwdPin, kMotor2RevPin}) {
-    gpio_hold_dis(static_cast<gpio_num_t>(pin));
-  }
-  printf("After holds\n");
+  motor1->DeepSleepResume();
+  motor2->DeepSleepResume();
 
   pinMode(kSleepPin, INPUT_PULLUP);
   while (!digitalRead(kSleepPin)) {
@@ -108,8 +100,6 @@ void setup() {
   delay(1000);
 
   neo_pixel.setBrightness(0.2 * 255);
-
-  WakeUp();
 
   pinMode(kBattVoltagePin, INPUT);
   analogSetAttenuation(ADC_11db);
@@ -134,6 +124,8 @@ void setup() {
   };
   motor2 = ServoMotor::Create(config2);
   motor2->SetDuty(0);
+
+  WakeUp();
 
   if (!Wire.begin(kMPU6050SDA, kMPU6050SCL)) {
     log_e("Failed to initialize I2C");
