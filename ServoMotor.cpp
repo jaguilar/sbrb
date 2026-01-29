@@ -132,7 +132,7 @@ void ServoMotor::Update() {
   int seq = 0;
   uint64_t last_log_micros = micros();
   while (true) {
-    if (xTaskDelayUntil(&last_wake_time, update_freq)) {
+    if (!xTaskDelayUntil(&last_wake_time, update_freq)) {
       log_i("missed deadline");
     }
     portENTER_CRITICAL(&control_mutex_);
@@ -156,6 +156,10 @@ void ServoMotor::Update() {
     const float dps = rps * 360;
 
     float new_speed = alpha * dps + (1 - alpha) * prev_speed;
+    portENTER_CRITICAL(&control_mutex_);
+    speed_ = new_speed;
+    portEXIT_CRITICAL(&control_mutex_);
+
     int output_duty;
 
     if (control.mode == ControlMode::kSpeed) {
@@ -168,6 +172,7 @@ void ServoMotor::Update() {
       OutputDuty(output_duty);
     }
 
+#if 0
     if (current_micros - last_log_micros > 20000) {
       last_log_micros = current_micros;
       uint32_t timestamp = current_micros / 1000;
@@ -179,6 +184,7 @@ void ServoMotor::Update() {
       printf(">d:%d:%f\n", timestamp, pid_.d());
       printf(">err:%d:%f\n", timestamp, pid_.error());
     }
+#endif
 
     prev_speed = new_speed;
     prev_pulse = cur_pulse;

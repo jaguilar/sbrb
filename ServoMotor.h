@@ -31,8 +31,10 @@ class ServoMotor {
   int64_t GetCount();
 
   float GetSpeed() {
-    jesl::ScopedLock lock(mutex_);
-    return speed_;
+    portENTER_CRITICAL(&control_mutex_);
+    float s = speed_;
+    portEXIT_CRITICAL(&control_mutex_);
+    return s;
   }
 
  private:
@@ -66,7 +68,6 @@ class ServoMotor {
   portMUX_TYPE control_mutex_ = portMUX_INITIALIZER_UNLOCKED;
 
   float speed_;  // deg/s
-  jesl::Mutex mutex_;
 
   TaskHandle_t task_;
   
