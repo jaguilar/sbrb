@@ -23,13 +23,14 @@
 
 ServoMotor::ServoMotor(pcnt_unit_handle_t unit, pcnt_channel_handle_t chan_a,
                        pcnt_channel_handle_t chan_b, int pwm_pin, int fwd_pin,
-                       int rev_pin)
+                       int rev_pin, int deadband)
     : unit_(unit),
       chan_a_(chan_a),
       chan_b_(chan_b),
       pwm_pin_(pwm_pin),
       fwd_pin_(fwd_pin),
       rev_pin_(rev_pin),
+      deadband_(deadband),
       pid_(PIDController::Params{
           .kp = .5f,
           .ti = 0.05f,
@@ -109,8 +110,9 @@ std::unique_ptr<ServoMotor> ServoMotor::Create(const Config& config) {
   analogWriteResolution(config.pwm_pin, 8);
   analogWrite(config.pwm_pin, 0);
 
-  auto servo_motor = new ServoMotor(pcnt_unit, chan_a, chan_b, config.pwm_pin,
-                                    config.fwd_pin, config.rev_pin);
+  auto servo_motor =
+      new ServoMotor(pcnt_unit, chan_a, chan_b, config.pwm_pin, config.fwd_pin,
+                     config.rev_pin, config.deadband);
 
   xTaskCreate(
       +[](void* arg) { reinterpret_cast<ServoMotor*>(arg)->Update(); },
@@ -151,7 +153,7 @@ void ServoMotor::Update() {
   uint64_t last_log_micros = micros();
   while (true) {
     if (!xTaskDelayUntil(&last_wake_time, update_freq)) {
-      log_i("missed deadline");
+      log_d("missed deadline");
     }
     portENTER_CRITICAL(&control_mutex_);
     new_control = control_;
@@ -215,19 +217,29 @@ void ServoMotor::OutputDuty(int duty) {
     digitalWrite(rev_pin_, HIGH);
     digitalWrite(fwd_pin_, HIGH);
     analogWrite(pwm_pin_, 0);
-  } else if (duty > 0) {
-    digitalWrite(rev_pin_, LOW);
-    digitalWrite(fwd_pin_, HIGH);
-    analogWrite(pwm_pin_, duty);
-  } else if (duty < 0) {
-    digitalWrite(rev_pin_, HIGH);
-    digitalWrite(fwd_pin_, LOW);
-    analogWrite(pwm_pin_, -duty);
-  } else {
+    return;
+  }
+  if (duty == 0) {
     digitalWrite(rev_pin_, LOW);
     digitalWrite(fwd_pin_, LOW);
     analogWrite(pwm_pin_, 0);
   }
+
+  if (duty > 0) {
+    digitalWrite(rev_pin_, LOW);
+    digitalWrite(fwd_pin_, HIGH);
+  } else if (duty < 0) {
+    digitalWrite(rev_pin_, HIGH);
+    digitalWrite(fwd_pin_, LOW);
+  }
+
+  duty = std::abs(duty);
+  if (deadband_ > 0) {
+    // Scale the duty cycle so that it is between deadband_ and 255.
+    const int deadband_width = 255 - deadband_;
+    duty = deadband_ + duty * deadband_width / 255;
+  }
+  analogWrite(pwm_pin_, duty);
 }
 
 void ServoMotor::SetDuty(int duty) {

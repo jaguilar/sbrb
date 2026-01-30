@@ -2,7 +2,6 @@
 include config.mk
 
 PROJECT_NAME := $(notdir $(CURDIR))
-CXXFLAGS = -DESP32=1
 
 # Default target
 all: compile
@@ -12,12 +11,13 @@ compile:
 		echo "// Auto-generated dummy file to satisfy arduino-cli" > $(PROJECT_NAME).ino; \
 	fi
 
-	arduino-cli compile --fqbn $(BOARD_FQBN) --build-path $(BUILD_DIR) --build-property "build.extra_flags=$(CXXFLAGS)" .
+	mkdir -p ./.cache/arduino
+	arduino-cli compile -b $(BOARD_FQBN) --build-path $(BUILD_DIR) -v
 	cp $(BUILD_DIR)/compile_commands.json .
 	sed -i compile_commands.json -e 's/\.ino\.cpp/.ino/g' -e 's|$(BUILD_DIR)/sketch/||g'
 
 upload: compile
-	arduino-cli upload -p $(BOARD_PORT) --fqbn $(BOARD_FQBN) --input-dir $(BUILD_DIR) .
+	arduino-cli upload -p $(BOARD_PORT) -b "$(BOARD_FQBN)" --input-dir $(BUILD_DIR) .
 
 monitor:
 	arduino-cli monitor -p $(BOARD_PORT)
@@ -26,6 +26,6 @@ monitor:
 
 # Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) ./.cache/arduino
 
 .PHONY: all compile upload clean

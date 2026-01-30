@@ -1,7 +1,7 @@
 # --- Project Configuration ---
 # The Fully Qualified Board Name (FQBN)
 # Run 'arduino-cli board listall' to find these
-BOARD_FQBN = esp32:esp32:esp32s3
+BOARD_FQBN = esp32:esp32:esp32s3:DebugLevel=info,CDCOnBoot=cdc
 
 # The serial port your device is connected to
 # Run 'arduino-cli board list' to find this

@@ -17,6 +17,14 @@ class ServoMotor {
     int pwm_pin;
     int fwd_pin;
     int rev_pin;
+
+    // DC motors often have a deadband where they won't move at all if commanded
+    // to move at a duty cycle in that deadband. This variable sets the motor
+    // to automatically compensate for the deadband. When a duty not equal to
+    // zero is commanded, the motor will run at a minimum of the deadband duty
+    // value. The actual duty cycle will be scaled in between the deadband value
+    // and the maximum duty cycle.
+    int deadband = 0;
   };
 
   static std::unique_ptr<ServoMotor> Create(const Config& config);
@@ -33,17 +41,19 @@ class ServoMotor {
 
   int64_t GetCount();
 
-  float GetSpeed() {
+  float GetSpeed() const {
     portENTER_CRITICAL(&control_mutex_);
     float s = speed_;
     portEXIT_CRITICAL(&control_mutex_);
     return s;
   }
 
+  void set_deadband(int deadband) { deadband_ = deadband; }
+
  private:
   ServoMotor(pcnt_unit_handle_t unit, pcnt_channel_handle_t chan_a,
              pcnt_channel_handle_t chan_b, int pwm_pin, int fwd_pin,
-             int rev_pin);
+             int rev_pin, int deadband);
 
   void Update();
   void OutputDuty(int duty);
@@ -54,6 +64,7 @@ class ServoMotor {
   const int pwm_pin_;
   const int fwd_pin_;
   const int rev_pin_;
+  int deadband_;
 
   // If the control setpoint is this value during duty-based control, we'll
   // brake instead of setting the duty.
@@ -68,7 +79,7 @@ class ServoMotor {
     ControlMode mode = ControlMode::kDuty;
   };
   Control control_;
-  portMUX_TYPE control_mutex_ = portMUX_INITIALIZER_UNLOCKED;
+  mutable portMUX_TYPE control_mutex_ = portMUX_INITIALIZER_UNLOCKED;
 
   float speed_;  // deg/s
 
