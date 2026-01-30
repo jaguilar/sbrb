@@ -647,16 +647,16 @@
       {
         "filename": "sbrb.kicad_sch",
         "name": "sbrb",
-        "uuid": "00000000-0000-0000-0000-000000000000"
+        "uuid": "3edb316a-46d5-4aff-aa24-301c1d17e106"
       }
     ],
-    "used_designators": "",
+    "used_designators": "D1",
     "variants": []
   },
   "sheets": [
     [
       "3edb316a-46d5-4aff-aa24-301c1d17e106",
-      "Root"
+      "sbrb"
     ]
   ],
   "text_variables": {},
