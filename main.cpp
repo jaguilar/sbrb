@@ -130,6 +130,8 @@ void InitNimBLE(void*) {
   server->advertiseOnDisconnect(true);
 
   log_i("NimBLE initialized");
+
+  vTaskDelete(nullptr);  // Intentionally exitting.
 }
 
 void setup() {
@@ -155,7 +157,7 @@ void setup() {
       .pwm_pin = kMotorLPwmPin,
       .fwd_pin = kMotorLFwdPin,
       .rev_pin = kMotorLRevPin,
-      .deadband = 25,
+      .deadband = 8,
   };
   motor_l = ServoMotor::Create(config);
   motor_l->SetDuty(0);
@@ -166,7 +168,7 @@ void setup() {
       .pwm_pin = kMotorRPwmPin,
       .fwd_pin = kMotorRFwdPin,
       .rev_pin = kMotorRRevPin,
-      .deadband = 25,
+      .deadband = 8,
   };
   motor_r = ServoMotor::Create(config2);
   motor_r->SetDuty(0);
@@ -176,6 +178,14 @@ void setup() {
   if (!Wire.begin(kMPU6050SDA, kMPU6050SCL)) {
     log_e("Failed to initialize I2C");
   } else {
+    const uint8_t reboot_mpu_6050[] = {0x6B, 0x80};
+    Wire.beginTransmission(MPU6050_DEFAULT_ADDRESS);
+    Wire.write(reboot_mpu_6050, 2);
+    Wire.endTransmission();
+
+    // Wait for reboot to complete.
+    delay(100);
+
     Wire.setClock(400000);
     log_i("I2C initialized");
     mpu = std::make_unique<MPU6050>(MPU6050_DEFAULT_ADDRESS, &Wire);
@@ -216,9 +226,10 @@ struct State {
   float pitch = -90;  // Degrees, negative if we're tilted forward.
   float pitch_rate;  // Rate in the change of pitch (i.e. the raw gyro reading.)
 
-  float yaw_rate;     // Degrees/s, smoothed via EWMA.
-  float wheel_speed;  // Degrees/s, averaged between the two motors, smoothed
-                      // via EWMA.
+  float yaw_rate = 0;     // Degrees/s, smoothed via EWMA.
+  float wheel_speed = 0;  // Degrees/s, averaged between the two motors,
+                          // smoothed via EWMA.
+  float accel = 0;        // Degrees/s^2, smoothed via EWMA.
 
   float wheel_speed_left;
   float wheel_speed_right;
@@ -266,15 +277,24 @@ void UpdateState(State& state, bool log_details = false) {
   float acc_angle_y = atan2(-ax, sqrt(ay * ay + az * az)) * kRadToDeg;
   state.pitch =
       (state.pitch + gy * kDt) * kAlpha + (1.0f - kAlpha) * acc_angle_y;
-  state.pitch_rate = gy;
 
-  // Update yaw rate. Tuned for a cutoff frequency of ~4Hz.
-  constexpr auto kYawAlpha = 0.05f;
-  state.yaw_rate = kYawAlpha * gz + (1.0f - kYawAlpha) * state.yaw_rate;
+  // Update pitch and yaw rates. Tuned for a cutoff frequency of ~4Hz.
+  constexpr auto kGyroAlpha = 0.05f;
+  constexpr auto kGryoAlphaInv = 1.0f - kGyroAlpha;
+  state.pitch_rate = kGyroAlpha * gy + kGryoAlphaInv * state.pitch_rate;
+  state.yaw_rate = kGyroAlpha * gz + kGryoAlphaInv * state.yaw_rate;
 
   state.wheel_speed_left = motor_l->GetSpeed();
   state.wheel_speed_right = motor_r->GetSpeed();
-  state.wheel_speed = (state.wheel_speed_left + state.wheel_speed_right) / 2.0f;
+  const float avg_speed =
+      (state.wheel_speed_left + state.wheel_speed_right) / 2.0f;
+  // Wheel speed is filtered less aggressively than the gyro since we expect
+  // a higher frequency of real wheel speed changes.
+  constexpr auto kSpeedAlpha = 0.1f;
+  const float raw_accel = (avg_speed - state.wheel_speed) / kDt;
+  state.accel = kSpeedAlpha * raw_accel + (1.0f - kSpeedAlpha) * state.accel;
+  state.wheel_speed =
+      kSpeedAlpha * avg_speed + (1.0f - kSpeedAlpha) * state.wheel_speed;
 
   if (log_details) {
     log_i("physics: %d us", micros() - phase_start);
@@ -304,7 +324,7 @@ void UpdateState(State& state, bool log_details = false) {
   const float abspitch = std::abs(state.pitch);
   if (state.fallen() && abspitch <= 3) {
     state.last_time_standing = state.now;
-  } else if (abspitch <= 15) {
+  } else if (abspitch <= 30) {
     state.last_time_standing = state.now;
   }
 
@@ -323,9 +343,9 @@ struct Controller {
   // in one direction tends to push the wheels in the opposite direction,
   // gain will be positive.
   PIDController pitch_controller{PIDController::Params{
-      .kp = 25.f,
-      .ti = 1.25f,
-      .td = 0.015f,
+      .kp = 35.f,
+      .ti = 1.4f,
+      .td = 0.03f,
       .output_range = {{-255, 255}},
   }};
 
@@ -337,10 +357,10 @@ struct Controller {
   // The gain's sign is set this way: if we want to go forward, we need to pitch
   // forward. To pitch forward, we need to the pitch to be negative.
   PIDController wheel_speed_controller{{
-      .kp = -0.0025f,
-      .ti = 1.0f,
-      .td = 0.015f,
-      .output_range = {{-10, 10}},
+      .kp = -0.01f,
+      .ti = 1.25f,
+      .td = 0.002f,
+      .output_range = {{-20, 20}},
   }};
 
   PIDController yaw_rate_controller{PIDController::Params{.kp = 0.0f}};
@@ -352,8 +372,8 @@ Controller controller;
 void Control(State& state, Controller& control) {
 #if 1
   // Try to find a pitch that will get us to the desired speed.
-  state.commanded_pitch =
-      control.wheel_speed_controller.Compute(0.0f, state.wheel_speed, 0.002f);
+  state.commanded_pitch = control.wheel_speed_controller.Compute(
+      0.0f, state.wheel_speed, state.accel, 0.002f);
   // Try to find a duty cycle that will get us to the desired pitch.
   float duty = control.pitch_controller.Compute(
       state.commanded_pitch, state.pitch, state.pitch_rate, 0.002f);
@@ -550,19 +570,26 @@ void loop() {
 
   MaybeReadCommand();
 
+  bool did_print = 0;
   if (state.now - last_print_time > 50) {
     const int loop_us = micros() - loop_start;
     controller.pitch_controller.DebugPrint("pitch");
     controller.wheel_speed_controller.DebugPrint("wheel_speed");
     printf(
-        ">pitch_deg:%f\n>cmd_pitch:%f\n>wheel_speed:%f\n>duty_"
-        "l:%f\nduty_r:%f\n",
-        state.pitch, state.commanded_pitch, state.wheel_speed,
-        state.commanded_duty_left, state.commanded_duty_right);
+        ">pitch_deg:%f\npitch_rate:%f\n>cmd_pitch:%f\n>wheel_speed:%f\n>duty:%"
+        "f\n>vbatt:%d\n",
+        state.pitch, state.pitch_rate, state.commanded_pitch, state.wheel_speed,
+        (state.commanded_duty_left + state.commanded_duty_right) / 2.0f,
+        state.vbatt_mv);
     last_print_time = state.now;
+    did_print = 1;
   }
 
   if (!xTaskDelayUntil(&last_wake_time, frequency)) {
-    log_d("Loop took more than %d ticks", static_cast<int>(frequency));
+    static int last_loop_log = millis();
+    if (millis() - last_loop_log > 1000 && !did_print) {
+      log_e("Loop took more than %d ticks", static_cast<int>(frequency));
+      last_loop_log = millis();
+    }
   }
 }

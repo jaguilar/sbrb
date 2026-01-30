@@ -36,7 +36,7 @@ float PIDController::Compute(float setpoint, float measure,
     if (saturated) {
       // Anti-windup: if we're saturated and integral_add was in the same
       // direction as the saturation, undo it.
-      if ((integral_add > 0) == (result == output_range_->second))
+      if ((ki_ * integral_add > 0) == (result == output_range_->second))
         integral_ -= integral_add;
     }
   }
