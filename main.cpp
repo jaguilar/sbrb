@@ -275,12 +275,12 @@ void UpdateState(State& state, bool log_details = false) {
   }
 
   // Convert to physical units
-  float ax = ax_raw / kAccelScale;
-  float ay = ay_raw / kAccelScale;
-  float az = az_raw / kAccelScale;
-  float gx = gx_raw / kGyroScale;
-  float gy = gy_raw / kGyroScale;
-  float gz = gz_raw / kGyroScale;
+  const float ax = ax_raw / kAccelScale;
+  const float ay = ay_raw / kAccelScale;
+  const float az = az_raw / kAccelScale;
+  const float gx = gx_raw / kGyroScale;
+  const float gy = gy_raw / kGyroScale;
+  const float gz = gz_raw / kGyroScale;
 
   float acc_angle_y = atan2(-ax, sqrt(ay * ay + az * az)) * kRadToDeg;
   state.pitch =
