@@ -353,7 +353,7 @@ struct Controller {
   PIDController pitch_controller{PIDController::Params{
       .kp = 35.f,
       .ti = 1.4f,
-      .td = 0.03f,
+      .td = 0.035f,
       .output_range = {{-255, 255}},
   }};
 
@@ -366,8 +366,8 @@ struct Controller {
   // forward. To pitch forward, we need to the pitch to be negative.
   PIDController wheel_speed_controller{{
       .kp = -0.01f,
-      .ti = 1.25f,
-      .td = 0.0f,
+      .ti = 2.5f,
+      .td = 0.005f,
       .output_range = {{-20, 20}},
   }};
 
