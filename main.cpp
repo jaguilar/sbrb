@@ -222,6 +222,9 @@ int BatteryMillivolts() {
 // not any intermediate values.
 struct State {
   int64_t now = millis();
+  int loop_iter = 0;
+
+  int last_steering_iter = 0;
 
   float pitch = -90;  // Degrees, negative if we're tilted forward.
   float pitch_rate;  // Rate in the change of pitch (i.e. the raw gyro reading.)
@@ -248,8 +251,13 @@ struct State {
   float commanded_duty_right;
 };
 
+constexpr int kBalanceFreq = 500;
+constexpr int kSteeringFreq = 20;
+constexpr int kSteerOncePerIters = kBalanceFreq / kSteeringFreq;
+
 void UpdateState(State& state, bool log_details = false) {
   state.now = millis();
+  state.loop_iter++;
   auto phase_start = micros();
 
   constexpr float kDt = 0.002f;  // 2ms = 500Hz
@@ -359,7 +367,7 @@ struct Controller {
   PIDController wheel_speed_controller{{
       .kp = -0.01f,
       .ti = 1.25f,
-      .td = 0.002f,
+      .td = 0.0f,
       .output_range = {{-20, 20}},
   }};
 
@@ -371,12 +379,17 @@ Controller controller;
 
 void Control(State& state, Controller& control) {
 #if 1
-  // Try to find a pitch that will get us to the desired speed.
-  state.commanded_pitch = control.wheel_speed_controller.Compute(
-      0.0f, state.wheel_speed, state.accel, 0.002f);
+  if (state.loop_iter - state.last_steering_iter >= kSteerOncePerIters) {
+    state.last_steering_iter = state.loop_iter;
+    // Try to find a pitch that will get us to the desired speed.
+    state.commanded_pitch = control.wheel_speed_controller.Compute(
+        0.0f, state.wheel_speed, state.accel, 1.0f / kSteeringFreq);
+  }
+
   // Try to find a duty cycle that will get us to the desired pitch.
-  float duty = control.pitch_controller.Compute(
-      state.commanded_pitch, state.pitch, state.pitch_rate, 0.002f);
+  float duty =
+      control.pitch_controller.Compute(state.commanded_pitch, state.pitch,
+                                       state.pitch_rate, 1.0f / kBalanceFreq);
 #else
 
   // Temporarily, we're trying to detect the deadzone of these motors.
