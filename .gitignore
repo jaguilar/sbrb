@@ -9,3 +9,9 @@ kicad/sbrb/sbrb-backups/
 kicad/sbrb/fp-info-cache
 ~*
 *freerouting*
+
+managed_components/
+sdkconfig
+sdkconfig.secret
+sdkconfig.old
+.vscode/settings.json

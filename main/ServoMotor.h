@@ -1,13 +1,14 @@
 #pragma once
 
 #include <Arduino.h>
-#include <memory>
-#include "portmacro.h"
 #include <driver/pulse_cnt.h>
-#include <freertos/FreeRTOS.h>
 #include <jesl.h>
 #include <jesl/freertos/mutex.h>
+
+#include <memory>
+
 #include "PIDController.h"
+#include "freertos/portmacro.h"
 
 class ServoMotor {
  public:

@@ -1,0 +1,49 @@
+menu "SBRB"
+
+  
+  choice BT_MODE
+    prompt "Which BT mode to use"
+    default BT_MODE_TUNE
+    help
+      Set to "pad" to enable pad control mode.
+
+    config BT_MODE_NONE
+      bool "No BT mode"
+
+    config BT_MODE_TUNE
+      bool "Tune mode (NimBLE)"
+      depends on BT_NIMBLE_ENABLED      
+
+    config BT_MODE_PAD
+      bool "Pad mode (Bluepad32)"
+      depends on BT_ENABLED
+  endchoice
+
+  config WIFI_SSID
+    string "WiFi SSID"
+    default ""
+    help
+      The SSID of the WiFi network to connect to.
+
+  config WIFI_PASSWORD
+    string "WiFi Password"
+    default ""
+    help
+      The password of the WiFi network to connect to.
+
+  config TELEMETRY_ENABLED
+    bool "Enable Telemetry"
+    default n
+    help
+      Turn on the telemetry code.
+    depends on WIFI_ENABLED
+
+  config TELEPLOT_HOSTNAME
+    string "Teleplot Hostname"
+    default ""
+    help
+      The hostname of the Teleplot server, if you want telemetry to be
+      sent somewhere.
+    depends on TELEMETRY_ENABLED
+
+endmenu

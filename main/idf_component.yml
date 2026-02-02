@@ -1,0 +1,25 @@
+dependencies:
+  jaguilar/jesl:
+    git: https://github.com/jaguilar/jesl.git
+    version: main
+  # Note: because bluepad32 is not set up correctly as a component within
+  # its git repository, we must manually include its dependencies (cmd_nvs,
+  # cmd_system, and btstack).
+  ricardoquesada/bluepad32:
+    git: https://github.com/ricardoquesada/bluepad32.git
+    version: main
+    path: src/components/bluepad32
+  ricardoquesada/cmd_nvs:
+    git: https://github.com/ricardoquesada/bluepad32.git
+    version: main
+    path: src/components/cmd_nvs
+  ricardoquesada/cmd_system:
+    git: https://github.com/ricardoquesada/bluepad32.git
+    version: main
+    path: src/components/cmd_system
+  # Note: this fork of btstack is set up to correctly resolve its dependency
+  # on the root of the btstack repo.
+  bluekitchen/btstack:
+    git: https://github.com/jaguilar/btstack.git
+    version: bluepad32
+    path: port/esp32/components/btstack

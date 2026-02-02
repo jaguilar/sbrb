@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
@@ -12,8 +13,7 @@
 #include "esp_err.h"
 #include "freertos/idf_additions.h"
 #include "portmacro.h"
-#include "projdefs.h"
-#include "semphr.h"
+#include "freertos/semphr.h"
 #include "soc/gpio_num.h"
 
 // Define LOG_TAG if not already defined for ESP logging macros
