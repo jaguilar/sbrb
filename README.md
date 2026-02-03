@@ -52,8 +52,8 @@ In addition to the 3D printed parts, you need:
 
 ## Media
 
-![Video of robot working](media/IMG_2025.mp4)
+<a href="https://youtube.com/shorts/HBjD4QG0f2U"><img src="https://img.youtube.com/vi/HBjD4QG0f2U/0.jpg" width=500></a>
 
-![Perboard pic 1](media/IMG_1998.JPG)
+<img src="media/IMG_1998.JPG" width=500 alt="Perfboard picture 1">
 
-![Perboard pic 2](media/IMG_1999.JPG)
+<img src="media/IMG_1999.JPG" width=500 alt="Perfboard picture 2">
