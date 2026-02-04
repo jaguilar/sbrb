@@ -52,7 +52,7 @@ In addition to the 3D printed parts, you need:
 
 ## Media
 
-<a href="https://youtube.com/shorts/HBjD4QG0f2U"><img src="https://img.youtube.com/vi/HBjD4QG0f2U/0.jpg" width=500></a>
+<a href="https://www.youtube.com/shorts/HBjD4QG0f2U"><img src="https://img.youtube.com/vi/HBjD4QG0f2U/0.jpg" width=500></a>
 
 <img src="media/IMG_1998.JPG" width=500 alt="Perfboard picture 1">
 
