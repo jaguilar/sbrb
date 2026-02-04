@@ -29,10 +29,11 @@ The bot uses 3D printed parts from this [OnShape document](https://cad.onshape.c
 
 In addition to the 3D printed parts, you need:
 
-* 2x 693ZZ bearings.
+* 2x 693ZZ bearings
 * 2x 500 RPM N20 motors with gearboxes (I used [these](https://www.aliexpress.us/item/3256807135186419.html?spm=a2g0o.order_list.order_list_main.5.16f118023HkDq9&gatewayAdapt=glo2usa))
+* 2x TT motor wheels
 * 1x 50x70mm perfboard
-* 1x MPU-6050
+* 1x MPU-6050 breakout board
 * 1x ESP32-S3 Zero Dev board
 * 1x Mini360 buck converter
 * 1x 20k resistor (buy a 0508 assortment of SMD parts, should have the caps and diode too)
@@ -42,13 +43,16 @@ In addition to the 3D printed parts, you need:
 * 1x 100uF capacitor throughhole
 * 1x 1N5819 Schottky diode
 * 1x 3A fuse (you can use less, 2A would be fine)
-* 1x throughhole power switch capable of supporting same amperage as your
-  fuse
+* 1x throughhole switch capable of supporting same amperage as your
+  fuse, or a lesser amperage and a MOSFET capable of supporting that current
 * 1x TB6612FNG motor driver breakout board
 * 1x 2S LiPo battery
 * 3x JST-XH 2 pin through hole header
 * 2x JST-XH 4 pin through hole header
 * JST-XH female connectors for wires
+* Various M2 and M3 hex head screws and nuts
+* Various 24 AWG hookup wire
+* XT30 connectors for battery
 
 ## Media
 
